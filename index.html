@@ -6,193 +6,596 @@
     <title>Seamless Audio Looper - MOI Apps Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom Glassmorphism & Gradients */
         body { background-color: #0f172a; }
         .glass-panel {
-            background: rgba(30, 41, 59, 0.65);
+            background: rgba(30, 41, 59, 0.72);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .glow-teal {
-            box-shadow: 0 0 25px rgba(45, 212, 191, 0.3);
+        input[type="range"] {
+            accent-color: #2dd4bf;
         }
     </style>
 </head>
-<body class="text-slate-200 min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
-    
-    <!-- Background Gradients (Vibrant Highlights) -->
-    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-teal-500/20 rounded-full blur-[100px] pointer-events-none"></div>
-    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+<body class="text-slate-200 min-h-screen flex flex-col items-center justify-center p-4 relative overflow-x-hidden font-sans">
 
-    <!-- Main App Container -->
-    <div class="glass-panel p-8 rounded-2xl shadow-2xl max-w-md w-full z-10 relative">
-        
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-indigo-400 mb-2">
+    <!-- Background Glow -->
+    <div class="fixed top-[-10%] left-[-10%] w-80 h-80 bg-teal-500/20 rounded-full blur-[100px] pointer-events-none"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <!-- Main Container -->
+    <div class="glass-panel p-6 sm:p-8 rounded-2xl shadow-2xl max-w-md w-full z-10 relative my-4">
+
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-indigo-400">
                 MOI Apps Looper
             </h1>
-            <p class="text-sm text-slate-400">Seamless 2-Hour Audio Generator</p>
+            <p class="text-xs sm:text-sm text-slate-400 mt-1">Seamless Crossfade Audio Generator (s/d 2 Jam)</p>
         </div>
 
-        <!-- Dropzone Area -->
-        <div id="dropzone" class="border-2 border-dashed border-teal-500/40 rounded-xl p-8 text-center cursor-pointer hover:bg-teal-500/10 hover:border-teal-400 transition-all duration-300 mb-6 group relative">
-            <input type="file" id="fileInput" accept="audio/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-            
-            <div id="uploadText">
-                <svg class="w-12 h-12 mx-auto text-teal-500 mb-3 group-hover:scale-110 group-hover:text-teal-400 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                <p class="text-slate-300 font-medium">Drag & Drop audio di sini</p>
-                <p class="text-xs text-slate-500 mt-2">atau klik area ini untuk unggah (MP3/WAV)</p>
+        <!-- 1. UPLOAD AUDIO / VIDEO -->
+        <div id="dropzone" class="border-2 border-dashed border-teal-500/40 rounded-xl p-5 text-center transition-all duration-300 mb-5 bg-slate-900/40">
+            <input type="file" id="fileInput" accept="audio/*,video/*,.mp3,.wav,.m4a,.ogg,.mp4" class="sr-only">
+
+            <div id="emptyState">
+                <svg class="w-10 h-10 mx-auto text-teal-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <p class="text-sm text-slate-300 font-medium mb-3">Tarik file ke sini atau klik tombol di bawah</p>
+                <label for="fileInput" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold text-sm cursor-pointer transition-all shadow-lg">
+                    📂 Upload Audio / Video
+                </label>
+                <p class="text-[11px] text-slate-500 mt-2">Mendukung MP3, WAV, M4A, OGG, & MP4</p>
             </div>
-            
-            <div id="fileInfo" class="hidden">
-                <svg class="w-12 h-12 mx-auto text-teal-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c-1.105 0-2-.895-2-2s.895-2 2-2 2 .895 2 2-.895 2-2 2zm12-3c-1.105 0-2-.895-2-2s.895-2 2-2 2 .895 2 2-.895 2-2 2z"></path></svg>
-                <p id="fileName" class="text-teal-300 font-semibold truncate px-2"></p>
+
+            <div id="loadedState" class="hidden">
+                <div class="flex items-center justify-between gap-3 bg-slate-800/80 p-3 rounded-lg border border-slate-700/70">
+                    <div class="flex items-center gap-3 min-w-0 text-left">
+                        <span class="text-2xl shrink-0">🎵</span>
+                        <div class="min-w-0">
+                            <p id="fileName" class="text-sm text-teal-300 font-semibold truncate"></p>
+                            <p id="fileMeta" class="text-[11px] text-slate-400"></p>
+                        </div>
+                    </div>
+                    <label for="fileInput" class="shrink-0 px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-white cursor-pointer transition-colors">
+                        Ganti
+                    </label>
+                </div>
             </div>
         </div>
 
-        <!-- Audio Controls -->
-        <div class="space-y-4">
-            <button id="playBtn" disabled class="w-full py-3.5 rounded-lg bg-teal-500 text-gray-900 font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed hover:bg-teal-400 hover:glow-teal transition-all flex items-center justify-center gap-2 relative z-20">
-                <span id="playIcon">▶️</span> <span id="playText">Play Seamless Preview</span>
-            </button>
-
-            <button id="exportBtn" disabled class="w-full py-3.5 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-500 text-white font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed hover:from-indigo-500 hover:to-indigo-400 transition-all shadow-lg flex items-center justify-center gap-2 relative z-20">
-                💾 Export 2-Hour Loop
-            </button>
+        <!-- Status Loading -->
+        <div id="statusBox" class="hidden mb-4 p-3 rounded-lg bg-indigo-500/20 border border-indigo-400/30 text-xs text-indigo-200 text-center animate-pulse">
+            Memproses audio...
         </div>
-        
-        <!-- Branding & Contact -->
-        <div class="mt-8 pt-5 border-t border-slate-700/60 text-center">
+
+        <!-- 2. PENGATURAN SEAMLESS LOOP -->
+        <div id="controlsSection" class="space-y-4 opacity-50 pointer-events-none transition-opacity duration-300">
+
+            <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-700/60 space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-teal-400">⚙️ Pengaturan Seamless</span>
+                    <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="autoTrimCheck" checked class="w-4 h-4 accent-teal-500 rounded">
+                        Potong Hening
+                    </label>
+                </div>
+
+                <!-- Crossfade Slider -->
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-slate-300">Durasi Crossfade (Peleburan)</span>
+                        <span id="crossfadeValue" class="text-teal-400 font-bold">2.0 detik</span>
+                    </div>
+                    <input type="range" id="crossfadeSlider" min="0" max="8" step="0.5" value="2" class="w-full cursor-pointer">
+                    <p class="text-[10px] text-slate-500 mt-1">Semakin besar crossfade, sambungan akhir & awal lagu makin menyatu.</p>
+                </div>
+
+                <!-- Waveform Preview Bar -->
+                <div>
+                    <canvas id="waveCanvas" width="360" height="48" class="w-full h-12 rounded-lg bg-slate-950/80 border border-slate-800"></canvas>
+                    <div class="flex justify-between text-[10px] text-slate-400 mt-1">
+                        <span id="currentTimeText">00:00</span>
+                        <span id="loopCycleText">Siklus Loop: 00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tombol Preview & Tes Sambungan -->
+            <div class="grid grid-cols-2 gap-2.5">
+                <button id="playBtn" class="py-3 px-3 rounded-lg bg-teal-500 hover:bg-teal-400 text-slate-900 font-bold text-sm transition-all flex items-center justify-center gap-1.5">
+                    <span id="playIcon">▶️</span> <span id="playText">Play Loop</span>
+                </button>
+                <button id="testSeamBtn" class="py-3 px-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-semibold text-sm transition-all flex items-center justify-center gap-1.5">
+                    🎯 Tes Sambungan
+                </button>
+            </div>
+
+            <!-- 3. PENGATURAN EXPORT -->
+            <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-700/60 space-y-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 block">💾 Pengaturan Export</span>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Target Durasi</label>
+                        <select id="durationSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                            <option value="5">5 Menit</option>
+                            <option value="15">15 Menit</option>
+                            <option value="30">30 Menit</option>
+                            <option value="60">1 Jam (60 Mnt)</option>
+                            <option value="120" selected>2 Jam (120 Mnt)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Kualitas Audio</label>
+                        <select id="qualitySelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-teal-400">
+                            <option value="22050" selected>Hemat HP (22kHz)</option>
+                            <option value="44100">Studio (44.1kHz)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <p id="sizeEstimate" class="text-[11px] text-slate-400 text-center">Estimasi file WAV: ~600 MB</p>
+
+                <button id="exportBtn" class="w-full py-3.5 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold text-sm tracking-wide transition-all shadow-lg flex items-center justify-center gap-2">
+                    ⬇️ Render & Download Loop
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer Branding -->
+        <div class="mt-6 pt-4 border-t border-slate-700/60 text-center">
             <p class="text-[11px] text-teal-400/80 font-bold tracking-widest uppercase">MOI Apps Studio</p>
-            <p class="text-[10px] text-slate-500 mt-1.5">Jl. Rimat Bakti No. 40, Karanganyar, Batang, Jawa Tengah 51216</p>
+            <p class="text-[10px] text-slate-500 mt-1">Jl. Rimat Bakti No. 40, Karanganyar, Batang, Jawa Tengah 51216</p>
             <p class="text-[10px] text-slate-500 mt-0.5">WhatsApp: 08197653003</p>
         </div>
     </div>
 
-    <!-- Logic JavaScript -->
     <script>
+        // Elements
         const fileInput = document.getElementById('fileInput');
         const dropzone = document.getElementById('dropzone');
-        const uploadText = document.getElementById('uploadText');
-        const fileInfo = document.getElementById('fileInfo');
-        const fileNameDisplay = document.getElementById('fileName');
-        
+        const emptyState = document.getElementById('emptyState');
+        const loadedState = document.getElementById('loadedState');
+        const fileNameEl = document.getElementById('fileName');
+        const fileMetaEl = document.getElementById('fileMeta');
+        const statusBox = document.getElementById('statusBox');
+        const controlsSection = document.getElementById('controlsSection');
+
+        const autoTrimCheck = document.getElementById('autoTrimCheck');
+        const crossfadeSlider = document.getElementById('crossfadeSlider');
+        const crossfadeValue = document.getElementById('crossfadeValue');
+        const waveCanvas = document.getElementById('waveCanvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        const currentTimeText = document.getElementById('currentTimeText');
+        const loopCycleText = document.getElementById('loopCycleText');
+
         const playBtn = document.getElementById('playBtn');
-        const exportBtn = document.getElementById('exportBtn');
         const playIcon = document.getElementById('playIcon');
         const playText = document.getElementById('playText');
+        const testSeamBtn = document.getElementById('testSeamBtn');
 
-        let audioContext = null;
-        let audioBuffer = null;
+        const durationSelect = document.getElementById('durationSelect');
+        const qualitySelect = document.getElementById('qualitySelect');
+        const sizeEstimate = document.getElementById('sizeEstimate');
+        const exportBtn = document.getElementById('exportBtn');
+
+        // Audio State
+        let audioCtx = null;
+        let rawBuffer = null;
+        let seamlessBuffer = null;
         let sourceNode = null;
         let isPlaying = false;
+        let playStartTime = 0;
+        let playStartOffset = 0;
+        let animFrameId = null;
+        let currentBaseName = 'moi-loop';
 
-        // UI Updates saat drag
+        function formatTime(sec) {
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        function showStatus(msg) {
+            statusBox.textContent = msg;
+            statusBox.classList.remove('hidden');
+        }
+
+        function hideStatus() {
+            statusBox.classList.add('hidden');
+        }
+
+        function updateSizeEstimate() {
+            const mins = parseInt(durationSelect.value, 10);
+            const sr = parseInt(qualitySelect.value, 10);
+            const channels = seamlessBuffer ? Math.min(2, seamlessBuffer.numberOfChannels) : 2;
+            const bytes = mins * 60 * sr * channels * 2; // 16-bit PCM
+            const mb = (bytes / (1024 * 1024)).toFixed(0);
+            sizeEstimate.textContent = `Estimasi file WAV (${mins} menit): ~${mb} MB`;
+        }
+
+        // Drag & Drop handlers
         ['dragenter', 'dragover'].forEach(evt => {
             dropzone.addEventListener(evt, (e) => {
                 e.preventDefault();
-                dropzone.classList.add('bg-teal-500/20', 'border-teal-400');
+                dropzone.classList.add('border-teal-400', 'bg-teal-500/10');
             });
         });
 
         ['dragleave', 'drop'].forEach(evt => {
             dropzone.addEventListener(evt, (e) => {
                 e.preventDefault();
-                dropzone.classList.remove('bg-teal-500/20', 'border-teal-400');
+                dropzone.classList.remove('border-teal-400', 'bg-teal-500/10');
             });
         });
 
-        // Deteksi file saat drop atau klik
         dropzone.addEventListener('drop', (e) => {
             if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
         });
-        
+
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) handleFile(e.target.files[0]);
+            fileInput.value = '';
         });
 
-        // Proses File & Web Audio API
+        // Decode uploaded file
         async function handleFile(file) {
-            if (!file.type.startsWith('audio/')) {
-                alert('Silakan unggah file audio (MP3/WAV).');
-                return;
-            }
-
-            uploadText.classList.add('hidden');
-            fileInfo.classList.remove('hidden');
-            fileNameDisplay.textContent = file.name;
-            
-            stopAudio(); // Hentikan audio sebelumnya jika ada
-            playBtn.disabled = true;
-            playText.textContent = 'Memproses Audio...';
+            stopAudio();
+            showStatus('Membaca dan mengekstrak audio...');
 
             try {
-                const arrayBuffer = await file.arrayBuffer();
-                
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 }
-                
-                // Decode file hingga level sample-rate untuk menghilangkan celah milidetik
-                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                
-                playBtn.disabled = false;
-                exportBtn.disabled = false;
-                playText.textContent = 'Play Seamless Preview';
-            } catch (error) {
-                alert('Gagal memproses file audio. Coba file lain.');
-                playText.textContent = 'Play Seamless Preview';
+                if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
+
+                const arrayBuffer = await file.arrayBuffer();
+                rawBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+                currentBaseName = file.name.replace(/\.[^/.]+$/, '');
+                fileNameEl.textContent = file.name;
+                fileMetaEl.textContent = `Durasi asli: ${formatTime(rawBuffer.duration)} • ${rawBuffer.numberOfChannels}ch`;
+
+                emptyState.classList.add('hidden');
+                loadedState.classList.remove('hidden');
+
+                // Sesuaikan batas maksimal crossfade berdasarkan durasi audio
+                const maxFade = Math.max(0.5, Math.min(10, Math.floor((rawBuffer.duration / 2.5) * 2) / 2));
+                crossfadeSlider.max = maxFade;
+                if (parseFloat(crossfadeSlider.value) > maxFade) {
+                    crossfadeSlider.value = Math.min(2, maxFade);
+                }
+
+                buildSeamlessBuffer();
+                controlsSection.classList.remove('opacity-50', 'pointer-events-none');
+                updateSizeEstimate();
+                hideStatus();
+            } catch (err) {
+                console.error(err);
+                hideStatus();
+                alert('Gagal membaca file. Pastikan file adalah audio/video yang valid (MP3, WAV, M4A, MP4).');
             }
         }
 
-        // Putar audio
-        function playAudio() {
-            if (!audioContext || !audioBuffer) return;
+        // Potong hening (Auto-Trim Silence)
+        function getTrimmedBounds(buffer, threshold = 0.004) {
+            const len = buffer.length;
+            let start = 0;
+            let end = len - 1;
 
-            sourceNode = audioContext.createBufferSource();
-            sourceNode.buffer = audioBuffer;
-            sourceNode.loop = true; // Parameter vital agar loop mulus tanpa gap
-            
-            sourceNode.connect(audioContext.destination);
-            sourceNode.start(0);
-            
+            if (!autoTrimCheck.checked) return { start: 0, end: len };
+
+            // Cari awal suara
+            outerStart:
+            for (let i = 0; i < len; i++) {
+                for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+                    if (Math.abs(buffer.getChannelData(ch)[i]) > threshold) {
+                        start = i;
+                        break outerStart;
+                    }
+                }
+            }
+
+            // Cari akhir suara
+            outerEnd:
+            for (let i = len - 1; i > start; i--) {
+                for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+                    if (Math.abs(buffer.getChannelData(ch)[i]) > threshold) {
+                        end = i + 1;
+                        break outerEnd;
+                    }
+                }
+            }
+
+            // Fallback jika file terlalu senyap
+            if (end - start < buffer.sampleRate * 1.5) {
+                return { start: 0, end: len };
+            }
+            return { start, end };
+        }
+
+        // Algoritma Equal-Power Crossfade Seamless Loop
+        function buildSeamlessBuffer() {
+            if (!rawBuffer || !audioCtx) return;
+
+            const wasPlaying = isPlaying;
+            if (wasPlaying) stopAudio();
+
+            const fadeSec = parseFloat(crossfadeSlider.value);
+            crossfadeValue.textContent = `${fadeSec.toFixed(1)} detik`;
+
+            const { start, end } = getTrimmedBounds(rawBuffer);
+            const trimmedLen = end - start;
+            const sr = rawBuffer.sampleRate;
+            const numChannels = rawBuffer.numberOfChannels;
+
+            let fadeSamples = Math.floor(fadeSec * sr);
+            if (fadeSamples >= Math.floor(trimmedLen / 2)) {
+                fadeSamples = Math.floor(trimmedLen / 3);
+            }
+
+            const outLen = trimmedLen - fadeSamples;
+            const outBuf = audioCtx.createBuffer(numChannels, outLen, sr);
+
+            for (let ch = 0; ch < numChannels; ch++) {
+                const raw = rawBuffer.getChannelData(ch);
+                const out = outBuf.getChannelData(ch);
+
+                if (fadeSamples === 0) {
+                    for (let i = 0; i < outLen; i++) {
+                        out[i] = raw[start + i];
+                    }
+                } else {
+                    const bodyLen = trimmedLen - (2 * fadeSamples);
+
+                    // 1. Bagian tengah (mulai tepat setelah area fade-in awal)
+                    for (let i = 0; i < bodyLen; i++) {
+                        out[i] = raw[start + fadeSamples + i];
+                    }
+
+                    // 2. Bagian Crossfade (akhir lagu dilebur ke awal lagu dengan kurva Equal-Power)
+                    for (let j = 0; j < fadeSamples; j++) {
+                        const ratio = j / fadeSamples;
+                        const fadeOutGain = Math.cos(ratio * Math.PI * 0.5);
+                        const fadeInGain = Math.sin(ratio * Math.PI * 0.5);
+
+                        const tailSample = raw[end - fadeSamples + j];
+                        const headSample = raw[start + j];
+
+                        out[bodyLen + j] = (tailSample * fadeOutGain) + (headSample * fadeInGain);
+                    }
+                }
+            }
+
+            seamlessBuffer = outBuf;
+            loopCycleText.textContent = `Siklus Loop: ${formatTime(seamlessBuffer.duration)}`;
+            drawWaveform(0);
+
+            if (wasPlaying) startAudio(0);
+        }
+
+        // Gambar gelombang audio & indikator playhead
+        function drawWaveform(progressRatio = 0) {
+            if (!seamlessBuffer) return;
+            const w = waveCanvas.width;
+            const h = waveCanvas.height;
+            waveCtx.clearRect(0, 0, w, h);
+
+            const data = seamlessBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / w);
+            const amp = h / 2;
+
+            // Highlight zona crossfade di ujung kanan
+            const fadeSec = parseFloat(crossfadeSlider.value);
+            const fadeRatio = Math.min(0.45, fadeSec / seamlessBuffer.duration);
+            if (fadeRatio > 0) {
+                waveCtx.fillStyle = 'rgba(99, 102, 241, 0.25)';
+                waveCtx.fillRect(w * (1 - fadeRatio), 0, w * fadeRatio, h);
+            }
+
+            // Gambar gelombang
+            waveCtx.fillStyle = '#2dd4bf';
+            for (let i = 0; i < w; i++) {
+                let min = 1.0, max = -1.0;
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                const barH = Math.max(2, (max - min) * amp);
+                waveCtx.fillRect(i, (1 + min) * amp, 1.5, barH);
+            }
+
+            // Garis playhead
+            if (isPlaying) {
+                const x = progressRatio * w;
+                waveCtx.fillStyle = '#f43f5e';
+                waveCtx.fillRect(x, 0, 2, h);
+            }
+        }
+
+        function updatePlayhead() {
+            if (!isPlaying || !seamlessBuffer) return;
+            const elapsed = (audioCtx.currentTime - playStartTime + playStartOffset) % seamlessBuffer.duration;
+            currentTimeText.textContent = formatTime(elapsed);
+            drawWaveform(elapsed / seamlessBuffer.duration);
+            animFrameId = requestAnimationFrame(updatePlayhead);
+        }
+
+        async function startAudio(offsetSec = 0) {
+            if (!seamlessBuffer || !audioCtx) return;
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            stopAudio();
+
+            sourceNode = audioCtx.createBufferSource();
+            sourceNode.buffer = seamlessBuffer;
+            sourceNode.loop = true;
+            sourceNode.connect(audioCtx.destination);
+
+            const safeOffset = Math.max(0, Math.min(offsetSec, seamlessBuffer.duration - 0.1));
+            sourceNode.start(0, safeOffset);
+
             isPlaying = true;
+            playStartTime = audioCtx.currentTime;
+            playStartOffset = safeOffset;
+
             playIcon.textContent = '⏹';
-            playText.textContent = 'Stop Preview';
-            
-            // Ubah gaya tombol ke mode Stop (Merah)
+            playText.textContent = 'Stop Loop';
             playBtn.classList.replace('bg-teal-500', 'bg-rose-500');
             playBtn.classList.replace('hover:bg-teal-400', 'hover:bg-rose-400');
-            playBtn.classList.replace('text-gray-900', 'text-white');
-            playBtn.classList.remove('hover:glow-teal');
+            playBtn.classList.replace('text-slate-900', 'text-white');
+
+            updatePlayhead();
         }
 
-        // Hentikan audio
         function stopAudio() {
             if (sourceNode) {
-                sourceNode.stop();
-                sourceNode.disconnect();
+                try { sourceNode.stop(); sourceNode.disconnect(); } catch (e) {}
+                sourceNode = null;
+            }
+            if (animFrameId) {
+                cancelAnimationFrame(animFrameId);
+                animFrameId = null;
             }
             isPlaying = false;
-            if(playIcon) playIcon.textContent = '▶️';
-            if(playText) playText.textContent = 'Play Seamless Preview';
-            
-            // Kembalikan gaya tombol ke mode Play (Teal)
+            playIcon.textContent = '▶️';
+            playText.textContent = 'Play Loop';
             playBtn.classList.replace('bg-rose-500', 'bg-teal-500');
             playBtn.classList.replace('hover:bg-rose-400', 'hover:bg-teal-400');
-            playBtn.classList.replace('text-white', 'text-gray-900');
-            playBtn.classList.add('hover:glow-teal');
+            playBtn.classList.replace('text-white', 'text-slate-900');
+            currentTimeText.textContent = '00:00';
+            if (seamlessBuffer) drawWaveform(0);
         }
 
-        // Handle klik tombol
+        // Event Listeners kontrol
+        crossfadeSlider.addEventListener('input', () => {
+            crossfadeValue.textContent = `${parseFloat(crossfadeSlider.value).toFixed(1)} detik`;
+        });
+        crossfadeSlider.addEventListener('change', buildSeamlessBuffer);
+        autoTrimCheck.addEventListener('change', buildSeamlessBuffer);
+
         playBtn.addEventListener('click', () => {
             if (isPlaying) stopAudio();
-            else playAudio();
+            else startAudio(0);
         });
 
-        exportBtn.addEventListener('click', () => {
-            alert('Untuk ekspor file 2 jam, blok ini nantinya akan dihubungkan dengan integrasi FFmpeg.wasm agar proses render berjalan secara background.');
+        // Lompat ke 4 detik sebelum titik sambungan untuk tes mulus tidaknya loop
+        testSeamBtn.addEventListener('click', () => {
+            if (!seamlessBuffer) return;
+            const testStart = Math.max(0, seamlessBuffer.duration - 4);
+            startAudio(testStart);
+        });
+
+        durationSelect.addEventListener('change', updateSizeEstimate);
+        qualitySelect.addEventListener('change', updateSizeEstimate);
+
+        // EXPORT WAV ASLI (Menggunakan PCM Chunking agar cepat & hemat RAM)
+        exportBtn.addEventListener('click', async () => {
+            if (!seamlessBuffer) return;
+            stopAudio();
+
+            const targetMinutes = parseInt(durationSelect.value, 10);
+            const targetSampleRate = parseInt(qualitySelect.value, 10);
+            const targetChannels = Math.min(2, seamlessBuffer.numberOfChannels);
+
+            exportBtn.disabled = true;
+            showStatus(`Merender audio seamless ${targetMinutes} menit... Mohon tunggu sebentar.`);
+
+            try {
+                // 1. Resample 1 siklus seamless ke sample rate pilihan via OfflineAudioContext
+                const cycleSamples = Math.round(seamlessBuffer.duration * targetSampleRate);
+                const offlineCtx = new OfflineAudioContext(targetChannels, cycleSamples, targetSampleRate);
+                const src = offlineCtx.createBufferSource();
+                src.buffer = seamlessBuffer;
+                src.connect(offlineCtx.destination);
+                src.start(0);
+
+                const renderedCycle = await offlineCtx.startRendering();
+
+                // 2. Konversi 1 siklus menjadi 16-bit PCM Uint8Array
+                const bytesPerSample = 2;
+                const blockAlign = targetChannels * bytesPerSample;
+                const cycleByteLength = renderedCycle.length * blockAlign;
+                const cyclePcm = new Uint8Array(cycleByteLength);
+                const view = new DataView(cyclePcm.buffer);
+
+                const channelsData = [];
+                for (let ch = 0; ch < targetChannels; ch++) {
+                    channelsData.push(renderedCycle.getChannelData(ch));
+                }
+
+                let offset = 0;
+                for (let i = 0; i < renderedCycle.length; i++) {
+                    for (let ch = 0; ch < targetChannels; ch++) {
+                        let sample = Math.max(-1, Math.min(1, channelsData[ch][i]));
+                        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+                        offset += 2;
+                    }
+                }
+
+                // 3. Susun potongan loop hingga mencapai target durasi tanpa menggandakan RAM
+                const totalTargetSamples = targetMinutes * 60 * targetSampleRate;
+                const fullRepeats = Math.floor(totalTargetSamples / renderedCycle.length);
+                const remainderSamples = totalTargetSamples % renderedCycle.length;
+                const remainderBytes = remainderSamples * blockAlign;
+                const totalDataBytes = (fullRepeats * cycleByteLength) + remainderBytes;
+
+                // 4. Buat Header WAV (44 bytes)
+                const header = new ArrayBuffer(44);
+                const hView = new DataView(header);
+
+                const writeStr = (pos, str) => {
+                    for (let i = 0; i < str.length; i++) hView.setUint8(pos + i, str.charCodeAt(i));
+                };
+
+                writeStr(0, 'RIFF');
+                hView.setUint32(4, 36 + totalDataBytes, true);
+                writeStr(8, 'WAVE');
+                writeStr(12, 'fmt ');
+                hView.setUint32(16, 16, true); // PCM chunk size
+                hView.setUint16(20, 1, true);  // PCM format
+                hView.setUint16(22, targetChannels, true);
+                hView.setUint32(24, targetSampleRate, true);
+                hView.setUint32(28, targetSampleRate * blockAlign, true);
+                hView.setUint16(32, blockAlign, true);
+                hView.setUint16(34, 16, true); // 16-bit
+                writeStr(36, 'data');
+                hView.setUint32(40, totalDataBytes, true);
+
+                // Gabungkan header + referensi chunk PCM berulang
+                const blobParts = [header];
+                for (let r = 0; r < fullRepeats; r++) {
+                    blobParts.push(cyclePcm);
+                }
+                if (remainderBytes > 0) {
+                    blobParts.push(cyclePcm.subarray(0, remainderBytes));
+                }
+
+                const wavBlob = new Blob(blobParts, { type: 'audio/wav' });
+                const url = URL.createObjectURL(wavBlob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentBaseName}_seamless_${targetMinutes}menit.wav`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
+                hideStatus();
+            } catch (err) {
+                console.error(err);
+                hideStatus();
+                alert('Gagal merender file. Coba pilih kualitas "Hemat HP" atau durasi lebih pendek jika memori HP terbatas.');
+            } finally {
+                exportBtn.disabled = false;
+            }
         });
     </script>
 </body>
